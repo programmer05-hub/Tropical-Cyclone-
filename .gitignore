@@ -6,3 +6,10 @@ coverage/
 *.log
 .env*
 !.env.example
+# AI Agent & IDE Folders
+.agent/
+.agents/
+.antigravity/
+.idx/
+.gemini/
+scratchpad.md
