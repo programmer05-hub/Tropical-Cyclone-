@@ -1,0 +1,6 @@
+{
+  "name": "CycloShield AI - Cyclone Forecasting & Disaster Alert Center",
+  "description": "AI agent for real-time cyclone forecasting, satellite meteorological telemetry, automated evacuation corridor routing, casualty impact projections, and emergency alert broadcast system.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

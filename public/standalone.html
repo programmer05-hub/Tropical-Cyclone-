@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+  <title>CycloShield AI - Cyclone Forecasting & Disaster Alert Center</title>
+  <meta name="description" content="AI agent for real-time cyclone forecasting, satellite meteorological telemetry, automated evacuation corridor routing, casualty impact projections, and emergency alert broadcast system." />
+  <meta property="og:title" content="CycloShield AI - Cyclone Forecasting & Disaster Alert Center" />
+  <meta property="og:description" content="AI agent for real-time cyclone forecasting, satellite meteorological telemetry, automated evacuation corridor routing, casualty impact projections, and emergency alert broadcast system." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="theme-color" content="#020617" />
+
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            radar: {
+              50: '#ecfeff',
+              500: '#06b6d4',
+              900: '#083344',
+              950: '#021824',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- React 18, ReactDOM, and Babel Standalone for direct file:// Chrome execution -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    @keyframes radarSweep {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .radar-sweep {
+      animation: radarSweep 4s linear infinite;
+      transform-origin: center;
+    }
+    @keyframes eyePulse {
+      0%, 100% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.15); opacity: 1; }
+    }
+    .eye-pulse {
+      animation: eyePulse 2s ease-in-out infinite;
+    }
+    @keyframes spinSlow {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .spin-slow {
+      animation: spinSlow 12s linear infinite;
+      transform-origin: center;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased overflow-x-hidden selection:bg-cyan-500 selection:text-slate-950">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef } = React;
+
+    // --- Embedded SVG Icons ---
+    const Icon = ({ name, className = "w-4 h-4" }) => {
+      const icons = {
+        shield: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />,
+        radio: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.93 19.07A10 10 0 0 1 12 16a10 10 0 0 1 7.07 3.07M12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm0 0v4m-4-7a7 7 0 0 1 8 0" />,
+        wind: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2" />,
+        gauge: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm0 0l3-3m-9 3a9 9 0 1 1 12 0" />,
+        alert: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />,
+        map: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 0 1 3 16.382V5.618a1 1 0 0 1 1.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0 0 21 18.382V7.618a1 1 0 0 0-.553-.894L15 4m0 13V4m0 0L9 7" />,
+        speaker: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 0 1 0 7.072m2.828-9.9a9 9 0 0 1 0 12.728M5 10H2v4h3l5 5V5L5 10z" />,
+        layers: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />,
+        check: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />,
+        play: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3l14 9-14 9V3z" />,
+        pause: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 4h4v16H6zm8 0h4v16h-4z" />,
+        refresh: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />,
+        sos: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 4.243a9 9 0 01-12.728 0m0 0l2.829-2.829m-2.829 2.829L3 21m2.828-12.536a5 5 0 017.072 0m0 0l-2.829 2.829" />,
+        info: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />,
+        crosshair: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 2v4m0 12v4M2 12h4m12 0h4m-6 0a4 4 0 1 1-8 0 4 4 0 0 1 8 0z" />,
+        globe: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+      };
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          {icons[name] || icons.shield}
+        </svg>
+      );
+    };
+
+    // --- Cyclone Data ---
+    const CYCLONES_DATABASE = [
+      {
+        id: "fani",
+        name: "Extremely Severe Cyclone FANI",
+        basin: "North Indian Ocean (Bay of Bengal)",
+        category: "Category 4 Equivalent (ESCS)",
+        agency: "IMD / INSAT-3D",
+        windSpeedKnots: 115,
+        windKmh: 215,
+        gustsKmh: 250,
+        pressureHpa: 932,
+        forwardSpeedKmh: 18,
+        heading: "NNE (25°)",
+        lat: 19.8,
+        lon: 85.8,
+        landfallTarget: "Puri Coast, Odisha (19.8°N, 85.8°E)",
+        hoursToLandfall: 9.5,
+        surgeHeightMeters: 5.2,
+        eyeDiameterKm: 28,
+        sstCelsius: 31.2,
+        evacuationCount: 1240000,
+        targetEvacuation: 1400000,
+        evacuationPercentage: 88,
+        nearbyCities: [
+          { name: "Puri Beach", lat: 19.81, lon: 85.83, distKm: 4 },
+          { name: "Bhubaneswar Airport", lat: 20.25, lon: 85.81, distKm: 51 },
+          { name: "Paradip Deepwater Port", lat: 20.26, lon: 86.67, distKm: 104 },
+          { name: "Gopalpur Port", lat: 19.26, lon: 84.91, distKm: 112 },
+          { name: "Cuttack Metro", lat: 20.46, lon: 85.88, distKm: 74 }
+        ],
+        corridors: [
+          { name: "NH-16 Coastal Trunk Arterial", status: "CONTRAFLOW ACTIVE", capacity: "14,500 veh/hr", clearance: "Clear Flow" },
+          { name: "SH-60 Puri-Bhubaneswar Link", status: "EMERGENCY CONVOY", capacity: "6,200 veh/hr", clearance: "Heavy Convoy" },
+          { name: "SH-19 Gopalpur Inland Bypass", status: "OPEN - NORMAL", capacity: "4,800 veh/hr", clearance: "Moderate" }
+        ],
+        shelters: [
+          { id: "S1", name: "Puri Marine Drive Cyclone Haven", capacity: 3500, occupied: 3150, elevation: 12, medical: true, foodDays: 7 },
+          { id: "S2", name: "Brahmagiri Multi-Purpose Shelter", capacity: 2200, occupied: 1980, elevation: 9, medical: true, foodDays: 6 },
+          { id: "S3", name: "Konark Sun Heritage High Ground", capacity: 4000, occupied: 3420, elevation: 15, medical: true, foodDays: 10 },
+          { id: "S4", name: "Satapada Chilika Inland School", capacity: 1800, occupied: 1650, elevation: 8, medical: false, foodDays: 5 }
+        ]
+      },
+      {
+        id: "biparjoy",
+        name: "Extremely Severe Cyclone BIPARJOY",
+        basin: "Arabian Sea",
+        category: "Category 3 Equivalent (ESCS)",
+        agency: "IMD / INSAT-3DR",
+        windSpeedKnots: 95,
+        windKmh: 175,
+        gustsKmh: 205,
+        pressureHpa: 954,
+        forwardSpeedKmh: 14,
+        heading: "NE (40°)",
+        lat: 22.8,
+        lon: 67.8,
+        landfallTarget: "Jakhau Port, Kutch, Gujarat",
+        hoursToLandfall: 16.0,
+        surgeHeightMeters: 3.8,
+        eyeDiameterKm: 34,
+        sstCelsius: 30.8,
+        evacuationCount: 108000,
+        targetEvacuation: 120000,
+        evacuationPercentage: 90,
+        nearbyCities: [
+          { name: "Jakhau Port", lat: 23.23, lon: 68.70, distKm: 105 },
+          { name: "Mandvi Beach", lat: 22.83, lon: 69.36, distKm: 160 },
+          { name: "Kandla Port", lat: 23.01, lon: 70.22, distKm: 245 },
+          { name: "Dwarka Temple Coast", lat: 22.24, lon: 68.96, distKm: 130 }
+        ],
+        corridors: [
+          { name: "NH-41 Kutch Coastal Bypass", status: "CONTRAFLOW ACTIVE", capacity: "9,000 veh/hr", clearance: "Clear Flow" },
+          { name: "GJ SH-6 Mandvi Express", status: "EMERGENCY ONLY", capacity: "4,500 veh/hr", clearance: "Regulated" }
+        ],
+        shelters: [
+          { id: "B1", name: "Jakhau Fishery Complex Haven", capacity: 2500, occupied: 2250, elevation: 11, medical: true, foodDays: 8 },
+          { id: "B2", name: "Bhuj Military High Ground", capacity: 5000, occupied: 4100, elevation: 110, medical: true, foodDays: 14 }
+        ]
+      },
+      {
+        id: "milton",
+        name: "Major Hurricane MILTON",
+        basin: "Gulf of Mexico / Atlantic",
+        category: "Category 5 Major Hurricane",
+        agency: "NOAA / NHC",
+        windSpeedKnots: 155,
+        windKmh: 285,
+        gustsKmh: 330,
+        pressureHpa: 902,
+        forwardSpeedKmh: 24,
+        heading: "ENE (70°)",
+        lat: 27.2,
+        lon: -83.5,
+        landfallTarget: "Sarasota / Tampa Bay, FL",
+        hoursToLandfall: 14.0,
+        surgeHeightMeters: 4.5,
+        eyeDiameterKm: 18,
+        sstCelsius: 30.5,
+        evacuationCount: 2800000,
+        targetEvacuation: 3200000,
+        evacuationPercentage: 87,
+        nearbyCities: [
+          { name: "Sarasota Barrier Island", lat: 27.33, lon: -82.53, distKm: 98 },
+          { name: "Tampa Downtown Bay", lat: 27.95, lon: -82.45, distKm: 132 },
+          { name: "St. Petersburg Pier", lat: 27.77, lon: -82.63, distKm: 108 },
+          { name: "Orlando Inland Complex", lat: 28.53, lon: -81.37, distKm: 254 }
+        ],
+        corridors: [
+          { name: "Interstate 4 Eastbound Expressway", status: "CONTRAFLOW ACTIVE", capacity: "18,000 veh/hr", clearance: "Heavy Flow" },
+          { name: "I-75 Northbound Bypass", status: "MODERATE FLOW", capacity: "12,000 veh/hr", clearance: "Moving" }
+        ],
+        shelters: [
+          { id: "M1", name: "Tampa SunDome Mega Shelter", capacity: 6000, occupied: 5200, elevation: 14, medical: true, foodDays: 8 },
+          { id: "M2", name: "Lakeland Central Regional Complex", capacity: 4500, occupied: 3900, elevation: 22, medical: true, foodDays: 12 }
+        ]
+      }
+    ];
+
+    const DEFAULT_SOS_PINGS = [
+      {
+        id: "SOS-701",
+        residentName: "A. Patnaik (Family of 4)",
+        phone: "+91-94371-XXXXX (Simulated)",
+        location: "Brahmagiri Lowlands, Block B",
+        timestamp: "6 mins ago",
+        status: "Critical",
+        details: "Elderly resident requires wheelchair; sea tide breached front gate. Roof safe for now.",
+        dispatched: false
+      },
+      {
+        id: "SOS-702",
+        residentName: "R. K. Jena & Trawler Crew (9 people)",
+        phone: "+91-98610-XXXXX (Simulated)",
+        location: "Astaranga Coastal Jetty",
+        timestamp: "14 mins ago",
+        status: "Critical",
+        details: "Fishing vessel stranded at pier; water level rising rapidly. Need high-clearance rescue boat.",
+        dispatched: false
+      },
+      {
+        id: "SOS-703",
+        residentName: "Subhadra Community Relief Haven",
+        phone: "+91-97772-XXXXX (Simulated)",
+        location: "Konark Sector 3 Bypass",
+        timestamp: "28 mins ago",
+        status: "Moderate",
+        details: "Generator fuel low; 45 evacuees including 8 infants. Request backup diesel & dry rations.",
+        dispatched: true
+      }
+    ];
+
+    function MainApp() {
+      const [activeStormId, setActiveStormId] = useState(() => {
+        try { return localStorage.getItem("cyclone_active_storm") || "fani"; } catch { return "fani"; }
+      });
+
+      const [sosPings, setSosPings] = useState(() => {
+        try {
+          const saved = localStorage.getItem("cyclone_sos_pings");
+          return saved ? JSON.parse(saved) : DEFAULT_SOS_PINGS;
+        } catch { return DEFAULT_SOS_PINGS; }
+      });
+
+      const [customAlerts, setCustomAlerts] = useState(() => {
+        try {
+          const saved = localStorage.getItem("cyclone_alerts");
+          return saved ? JSON.parse(saved) : [
+            {
+              id: "ALT-1",
+              level: "CRITICAL RED ALERT",
+              audience: "Coastal Residents (0-10 km Inundation Zone)",
+              text: "IMMEDIATE EVACUATION ORDER: Severe Tropical Cyclone approaching with 5.2m peak storm surge. Move inland to high-elevation multi-purpose shelters immediately. Contraflow lanes are ACTIVE on NH-16.",
+              time: "08:15 UTC"
+            }
+          ];
+        } catch { return []; }
+      });
+
+      const [mapType, setMapType] = useState(() => {
+        try { return localStorage.getItem("cyclone_map_type") || "satellite"; } catch { return "satellite"; }
+      });
+
+      const [activeTab, setActiveTab] = useState("overview");
+      const [isSimulating, setIsSimulating] = useState(true);
+      const [simOffsetHours, setSimOffsetHours] = useState(0);
+      const [isSpeaking, setIsSpeaking] = useState(false);
+      const [newSosModal, setNewSosModal] = useState(false);
+      const [broadcastInput, setBroadcastInput] = useState("");
+      const [alertLanguage, setAlertLanguage] = useState("English");
+      const [sosForm, setSosForm] = useState({ name: "", location: "", phone: "", details: "" });
+      const [activePinpoint, setActivePinpoint] = useState(null);
+
+      useEffect(() => {
+        try { localStorage.setItem("cyclone_active_storm", activeStormId); } catch {}
+      }, [activeStormId]);
+
+      useEffect(() => {
+        try { localStorage.setItem("cyclone_sos_pings", JSON.stringify(sosPings)); } catch {}
+      }, [sosPings]);
+
+      useEffect(() => {
+        try { localStorage.setItem("cyclone_alerts", JSON.stringify(customAlerts)); } catch {}
+      }, [customAlerts]);
+
+      useEffect(() => {
+        try { localStorage.setItem("cyclone_map_type", mapType); } catch {}
+      }, [mapType]);
+
+      const currentStorm = useMemo(() => {
+        return CYCLONES_DATABASE.find((c) => c.id === activeStormId) || CYCLONES_DATABASE[0];
+      }, [activeStormId]);
+
+      useEffect(() => {
+        if (!isSimulating) return;
+        const timer = setInterval(() => {
+          setSimOffsetHours((prev) => (prev >= 24 ? 0 : prev + 1));
+        }, 3200);
+        return () => clearInterval(timer);
+      }, [isSimulating]);
+
+      const simulatedPosition = useMemo(() => {
+        const factor = simOffsetHours / 24;
+        const latDelta = (currentStorm.nearbyCities[0]?.lat || currentStorm.lat) - currentStorm.lat;
+        const lonDelta = (currentStorm.nearbyCities[0]?.lon || currentStorm.lon) - currentStorm.lon;
+        return {
+          lat: Number((currentStorm.lat + latDelta * factor * 0.8).toFixed(2)),
+          lon: Number((currentStorm.lon + lonDelta * factor * 0.8).toFixed(2))
+        };
+      }, [currentStorm, simOffsetHours]);
+
+      const calculateDistance = (lat1, lon1, lat2, lon2) => {
+        const R = 6371;
+        const dLat = ((lat2 - lat1) * Math.PI) / 180;
+        const dLon = ((lon2 - lon1) * Math.PI) / 180;
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos((lat1 * Math.PI) / 180) *
+          Math.cos((lat2 * Math.PI) / 180) *
+          Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return Math.round(R * c);
+      };
+
+      const playSpeechWarning = (message, lang = alertLanguage) => {
+        if (!('speechSynthesis' in window)) {
+          alert("Web Speech API is not supported in this browser.");
+          return;
+        }
+        window.speechSynthesis.cancel();
+        if (isSpeaking) {
+          setIsSpeaking(false);
+          return;
+        }
+
+        const utterance = new SpeechSynthesisUtterance(message);
+        utterance.rate = 0.95;
+        utterance.pitch = 1.0;
+
+        const langCodes = {
+          English: "en-US",
+          Hindi: "hi-IN",
+          Odia: "hi-IN",
+          Bengali: "bn-IN",
+          Spanish: "es-ES"
+        };
+        utterance.lang = langCodes[lang] || "en-US";
+        utterance.onend = () => setIsSpeaking(false);
+        utterance.onerror = () => setIsSpeaking(false);
+
+        setIsSpeaking(true);
+        window.speechSynthesis.speak(utterance);
+      };
+
+      const handleToggleDispatch = (id) => {
+        setSosPings((prev) =>
+          prev.map((item) =>
+            item.id === id ? { ...item, dispatched: !item.dispatched } : item
+          )
+        );
+      };
+
+      const handleAddSos = (e) => {
+        e.preventDefault();
+        if (!sosForm.name || !sosForm.location) return;
+        const cleanPhone = sosForm.phone ? sosForm.phone.trim() : "";
+        const maskedPhone = cleanPhone
+          ? `${cleanPhone.slice(0, 8)}XXXXX (Simulated)`
+          : "+91-94371-XXXXX (Simulated)";
+
+        const newPing = {
+          id: `SOS-${Math.floor(100 + Math.random() * 900)}`,
+          residentName: sosForm.name,
+          phone: maskedPhone,
+          location: sosForm.location,
+          timestamp: "Just now",
+          status: "Critical",
+          details: sosForm.details || "Urgent rescue assistance requested at coastal sector.",
+          dispatched: false
+        };
+        setSosPings([newPing, ...sosPings]);
+        setSosForm({ name: "", location: "", phone: "", details: "" });
+        setNewSosModal(false);
+      };
+
+      const handlePostAlert = (e) => {
+        e.preventDefault();
+        if (!broadcastInput.trim()) return;
+        const newAlert = {
+          id: `ALT-${Date.now().toString().slice(-4)}`,
+          level: "EMERGENCY BROADCAST",
+          audience: `All Disaster Management Units (${alertLanguage})`,
+          text: broadcastInput.trim(),
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        setCustomAlerts([newAlert, ...customAlerts]);
+        setBroadcastInput("");
+      };
+
+      const gmapsEmbedUrl = useMemo(() => {
+        const qTarget = `${simulatedPosition.lat},${simulatedPosition.lon}`;
+        return `https://maps.google.com/maps?q=${qTarget}&t=h&z=8&output=embed`;
+      }, [simulatedPosition]);
+
+      return (
+        <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-slate-950 text-slate-100 flex flex-col font-sans">
+          {/* Header */}
+          <header className="sticky top-0 z-50 bg-slate-950/95 backdrop-blur-md border-b border-cyan-900/40 shadow-2xl w-full">
+            <div className="w-full max-w-[1720px] mx-auto px-2.5 sm:px-5 lg:px-8 py-2.5 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-slate-950 shadow-lg shadow-cyan-500/20 shrink-0">
+                  <Icon name="shield" className="w-5 h-5 sm:w-6 sm:h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm sm:text-base lg:text-lg font-black tracking-wider text-white">
+                      CYCLOSHIELD AI
+                    </span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-950 text-cyan-400 border border-cyan-500/30">
+                      {currentStorm.agency}
+                    </span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse">
+                      LEVEL-4 EMERGENCY
+                    </span>
+                  </div>
+                  <p className="text-[10px] sm:text-[11px] text-slate-400 font-mono hidden xs:block">
+                    National Severe Storm Telemetry, Evacuation Routing & Dispatch System
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={activeStormId}
+                  onChange={(e) => setActiveStormId(e.target.value)}
+                  className="bg-slate-900 text-cyan-300 px-2.5 sm:px-3 py-1.5 rounded-xl border border-cyan-500/40 text-xs font-mono font-bold focus:outline-none cursor-pointer"
+                >
+                  {CYCLONES_DATABASE.map((storm) => (
+                    <option key={storm.id} value={storm.id}>
+                      {storm.name.split(" ")[storm.name.split(" ").length - 1]} ({storm.category.split(" ")[0]})
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  onClick={() => setIsSimulating(!isSimulating)}
+                  className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-mono flex items-center gap-1.5 border border-slate-700 transition cursor-pointer"
+                >
+                  <Icon name={isSimulating ? "pause" : "play"} className="w-3.5 h-3.5 text-cyan-400" />
+                  <span className="hidden sm:inline">{isSimulating ? "Ticking" : "Paused"}</span>
+                  <span className="text-cyan-400 font-bold">T+{simOffsetHours}h</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="w-full max-w-[1720px] mx-auto px-2 sm:px-5 lg:px-8 border-t border-slate-900">
+              <nav className="flex items-center gap-1 sm:gap-2 py-1.5 overflow-x-auto no-scrollbar text-xs font-medium">
+                {[
+                  { id: "overview", label: "Mission Overview", icon: "shield" },
+                  { id: "gmaps", label: "Google Maps Tracker (🌀)", icon: "globe" },
+                  { id: "radar", label: "Doppler Radar & Cone", icon: "radio" },
+                  { id: "structure", label: "Eyewall Vortex (0-18km)", icon: "layers" },
+                  { id: "alerts", label: "Multilingual Audio Siren", icon: "speaker" },
+                  { id: "sos", label: "Resident SOS Dispatch", icon: "sos" },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 whitespace-nowrap transition cursor-pointer shrink-0 ${
+                      activeTab === tab.id
+                        ? "bg-cyan-500 text-slate-950 font-bold shadow-md shadow-cyan-500/20"
+                        : "text-slate-400 hover:text-slate-100 hover:bg-slate-900"
+                    }`}
+                  >
+                    <Icon name={tab.icon} className="w-4 h-4" />
+                    <span>{tab.label}</span>
+                  </button>
+                ))}
+              </nav>
+            </div>
+          </header>
+
+          {/* Alert Ticker */}
+          <div className="bg-red-950/40 border-b border-red-500/30 px-2.5 sm:px-5 lg:px-8 py-2">
+            <div className="w-full max-w-[1720px] mx-auto flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
+                <span className="text-red-400 font-bold uppercase">Landfall Alert:</span>
+                <span className="text-slate-200">
+                  {currentStorm.landfallTarget} in <strong>{Math.max(1, Math.round(currentStorm.hoursToLandfall - (simOffsetHours * 0.4)))} hours</strong>.
+                </span>
+                <span className="text-cyan-300 font-bold hidden md:inline">
+                  Surge Peak: +{currentStorm.surgeHeightMeters}m MSL
+                </span>
+                <span className="text-amber-400 font-bold hidden lg:inline">
+                  Eye Coords: {simulatedPosition.lat}°N, {simulatedPosition.lon}°E
+                </span>
+              </div>
+
+              <button
+                onClick={() => playSpeechWarning(`Emergency Cyclone Warning for ${currentStorm.name}. Sustained winds of ${currentStorm.windKmh} kilometers per hour approaching ${currentStorm.landfallTarget}. Move to high ground shelters immediately.`)}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold text-xs transition cursor-pointer shadow-md shadow-red-600/20"
+              >
+                <Icon name="speaker" className="w-3.5 h-3.5" />
+                <span>{isSpeaking ? "Stop Voice Siren" : "Generate Audio Alert"}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Main Dashboard */}
+          <main className="flex-1 w-full max-w-[1720px] mx-auto px-2.5 sm:px-5 lg:px-8 py-5 space-y-5">
+            {activeTab === "overview" && (
+              <div className="space-y-5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3.5">
+                  <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 sm:p-4 shadow-lg">
+                    <span className="text-[11px] sm:text-xs text-slate-400 block font-mono">Central Pressure</span>
+                    <div className="my-0.5 sm:my-1 text-xl sm:text-2xl font-black text-amber-300 font-mono">
+                      {currentStorm.pressureHpa} <span className="text-xs font-normal text-slate-400">hPa</span>
+                    </div>
+                    <span className="text-[10px] text-red-400 font-semibold font-mono">Deep Low Core</span>
+                  </div>
+
+                  <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 sm:p-4 shadow-lg">
+                    <span className="text-[11px] sm:text-xs text-slate-400 block font-mono">Sustained Winds</span>
+                    <div className="my-0.5 sm:my-1 text-xl sm:text-2xl font-black text-cyan-300 font-mono">
+                      {currentStorm.windSpeedKnots} <span className="text-xs font-normal text-slate-400">kt</span>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-mono">{currentStorm.windKmh} km/h (G: {currentStorm.gustsKmh})</span>
+                  </div>
+
+                  <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 sm:p-4 shadow-lg">
+                    <span className="text-[11px] sm:text-xs text-slate-400 block font-mono">Storm Surge Peak</span>
+                    <div className="my-0.5 sm:my-1 text-xl sm:text-2xl font-black text-red-400 font-mono">
+                      +{currentStorm.surgeHeightMeters} <span className="text-xs font-normal text-slate-400">meters</span>
+                    </div>
+                    <span className="text-[10px] text-amber-400 font-semibold font-mono">Inundation Warning</span>
+                  </div>
+
+                  <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 sm:p-4 shadow-lg">
+                    <span className="text-[11px] sm:text-xs text-slate-400 block font-mono">Eye Diameter</span>
+                    <div className="my-0.5 sm:my-1 text-xl sm:text-2xl font-black text-purple-300 font-mono">
+                      {currentStorm.eyeDiameterKm} <span className="text-xs font-normal text-slate-400">km</span>
+                    </div>
+                    <span className="text-[10px] text-emerald-400 font-semibold font-mono">Stadium Vortex</span>
+                  </div>
+
+                  <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 sm:p-4 shadow-lg">
+                    <span className="text-[11px] sm:text-xs text-slate-400 block font-mono">Forward Translation</span>
+                    <div className="my-0.5 sm:my-1 text-xl sm:text-2xl font-black text-blue-300 font-mono">
+                      {currentStorm.forwardSpeedKmh} <span className="text-xs font-normal text-slate-400">km/h</span>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-mono">Heading: {currentStorm.heading}</span>
+                  </div>
+
+                  <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 sm:p-4 shadow-lg">
+                    <span className="text-[11px] sm:text-xs text-slate-400 block font-mono">Evacuated Citizens</span>
+                    <div className="my-0.5 sm:my-1 text-xl sm:text-2xl font-black text-emerald-400 font-mono">
+                      {(currentStorm.evacuationCount / 1000000).toFixed(2)}M
+                    </div>
+                    <span className="text-[10px] text-emerald-300 font-mono">{currentStorm.evacuationPercentage}% Evacuated</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                  <div className="lg:col-span-2 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xl flex flex-col justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-2">
+                        <Icon name="radio" className="w-5 h-5 text-cyan-400" />
+                        <h2 className="text-sm sm:text-base font-bold text-white uppercase">
+                          INSAT-3D Doppler Radar Reflectivity (dBZ)
+                        </h2>
+                      </div>
+                      <button
+                        onClick={() => setActiveTab("gmaps")}
+                        className="px-2.5 py-1 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/30 text-xs font-mono font-bold flex items-center gap-1 transition"
+                      >
+                        <Icon name="globe" className="w-3.5 h-3.5" />
+                        <span>Switch to Google Maps 🌀</span>
+                      </button>
+                    </div>
+
+                    <div className="relative w-full h-[320px] sm:h-[400px] bg-slate-950 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
+                      <svg viewBox="0 0 500 500" className="w-full h-full max-w-[420px] max-h-[420px]">
+                        <defs>
+                          <linearGradient id="sweepGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.5" />
+                            <stop offset="100%" stopColor="#06b6d4" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
+
+                        <circle cx="250" cy="250" r="60" fill="none" stroke="#334155" strokeWidth="1" strokeDasharray="3 3" />
+                        <circle cx="250" cy="250" r="120" fill="none" stroke="#334155" strokeWidth="1" strokeDasharray="3 3" />
+                        <circle cx="250" cy="250" r="180" fill="none" stroke="#334155" strokeWidth="1" strokeDasharray="3 3" />
+                        <circle cx="250" cy="250" r="230" fill="none" stroke="#475569" strokeWidth="1.5" />
+
+                        <line x1="250" y1="20" x2="250" y2="480" stroke="#1e293b" strokeWidth="1" />
+                        <line x1="20" y1="250" x2="480" y2="250" stroke="#1e293b" strokeWidth="1" />
+
+                        <g transform={`rotate(${simOffsetHours * 15} 250 250)`}>
+                          <path d="M 250 250 Q 320 200 380 270 Q 420 340 370 410" fill="none" stroke="#10b981" strokeWidth="18" opacity="0.6" strokeLinecap="round" />
+                          <path d="M 250 250 Q 180 300 120 230 Q 80 160 130 90" fill="none" stroke="#f59e0b" strokeWidth="20" opacity="0.7" strokeLinecap="round" />
+                          <path d="M 250 250 Q 200 180 270 120 Q 340 80 410 130" fill="none" stroke="#06b6d4" strokeWidth="22" opacity="0.5" strokeLinecap="round" />
+                          
+                          <circle cx="250" cy="250" r="55" fill="none" stroke="#ef4444" strokeWidth="22" opacity="0.85" />
+                          <circle cx="250" cy="250" r="38" fill="none" stroke="#dc2626" strokeWidth="12" opacity="0.9" />
+
+                          <circle cx="250" cy="250" r="22" fill="#020617" stroke="#38bdf8" strokeWidth="2" />
+                          <text x="250" y="255" textAnchor="middle" fill="#38bdf8" fontSize="16" className="spin-slow">🌀</text>
+                        </g>
+
+                        <g className="radar-sweep">
+                          <path d="M 250 250 L 250 20 A 230 230 0 0 1 412 87 Z" fill="url(#sweepGrad)" />
+                          <line x1="250" y1="250" x2="250" y2="20" stroke="#38bdf8" strokeWidth="2" />
+                        </g>
+                      </svg>
+
+                      <div className="absolute bottom-2.5 left-2.5 bg-slate-900/90 backdrop-blur-md px-2.5 py-1 rounded-lg border border-slate-700 text-[10px] font-mono text-slate-300">
+                        <div>RADAR: DWR-500K</div>
+                        <div className="text-cyan-400 font-bold">EYE: {simulatedPosition.lat}°N, {simulatedPosition.lon}°E</div>
+                      </div>
+
+                      <div className="absolute top-2.5 right-2.5 bg-slate-900/90 backdrop-blur-md px-2.5 py-1 rounded-lg border border-slate-700 text-[10px] font-mono text-slate-400">
+                        <span>RINGS: 50/100/150/200 KM</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xl flex flex-col justify-between space-y-4">
+                    <div>
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                        <div className="flex items-center gap-2">
+                          <Icon name="map" className="w-4 h-4 text-emerald-400" />
+                          <h3 className="text-sm font-bold text-white uppercase">Evacuation Arterials</h3>
+                        </div>
+                        <span className="text-[10px] font-mono text-emerald-400 font-bold">CONTRAFLOW ACTIVE</span>
+                      </div>
+
+                      <div className="mt-3 space-y-2">
+                        {currentStorm.corridors.map((c, i) => (
+                          <div key={i} className="p-2.5 bg-slate-950/70 border border-slate-800 rounded-xl">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="font-bold text-slate-200">{c.name}</span>
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                {c.status}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between mt-1 text-[11px] text-slate-400 font-mono">
+                              <span>Throughput: {c.capacity}</span>
+                              <span className="text-cyan-300">{c.clearance}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-300 uppercase mb-2">High-Ground Shelters</h4>
+                      <div className="space-y-2">
+                        {currentStorm.shelters.slice(0, 3).map((s) => {
+                          const pct = Math.round((s.occupied / s.capacity) * 100);
+                          return (
+                            <div key={s.id} className="p-2 bg-slate-950/70 border border-slate-800 rounded-xl text-xs">
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="font-semibold text-slate-200">{s.name}</span>
+                                <span className="font-mono text-cyan-300 text-[11px]">+{s.elevation}m MSL</span>
+                              </div>
+                              <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                <div
+                                  className={`h-full ${pct > 90 ? "bg-red-500" : "bg-emerald-500"}`}
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                              <div className="flex justify-between text-[10px] text-slate-400 font-mono mt-1">
+                                <span>{s.occupied} / {s.capacity} ({pct}%)</span>
+                                <span>{s.foodDays} Days Food</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "gmaps" && (
+              <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 sm:p-5 shadow-2xl space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl animate-spin">🌀</span>
+                    <div>
+                      <h3 className="text-sm sm:text-base font-bold text-white uppercase flex items-center gap-2">
+                        <span>Google Maps Cyclone Eye Tracking Station</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-red-500/20 text-red-400 border border-red-500/40 font-bold">
+                          LIVE PINPOINT
+                        </span>
+                      </h3>
+                      <p className="text-xs text-slate-400 font-mono">
+                        Real-time eye center coordinates at {simulatedPosition.lat}°N, {simulatedPosition.lon}°E • Distance calculation & coastal radius
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-mono">
+                    {["satellite", "terrain", "roadmap"].map((type) => (
+                      <button
+                        key={type}
+                        onClick={() => setMapType(type)}
+                        className={`px-3 py-1 rounded-lg capitalize transition cursor-pointer ${
+                          mapType === type
+                            ? "bg-cyan-500 text-slate-950 font-bold shadow"
+                            : "text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        {type}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-2.5 bg-slate-950/80 p-2.5 sm:p-3 rounded-xl border border-slate-800">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs text-slate-400 font-mono font-bold flex items-center gap-1">
+                      <Icon name="crosshair" className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Coastal Targets:</span>
+                    </span>
+                    {currentStorm.nearbyCities.map((city, idx) => {
+                      const dist = calculateDistance(simulatedPosition.lat, simulatedPosition.lon, city.lat, city.lon);
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => setActivePinpoint(city)}
+                          className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-cyan-950 border border-slate-800 hover:border-cyan-500 text-xs font-mono text-slate-300 transition flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <span className="font-bold">{city.name}</span>
+                          <span className="text-amber-400 font-bold">{dist} km</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="text-xs font-mono text-cyan-300 bg-cyan-950/60 px-3 py-1 rounded-lg border border-cyan-500/30 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                    <span>EYE PINPOINT: <strong>{simulatedPosition.lat}°N, {simulatedPosition.lon}°E</strong></span>
+                  </div>
+                </div>
+
+                <div className="relative w-full h-[380px] sm:h-[480px] lg:h-[580px] rounded-xl overflow-hidden border border-slate-700 bg-slate-950 shadow-inner">
+                  <iframe
+                    title="Google Maps Cyclone Tracking"
+                    src={gmapsEmbedUrl}
+                    className="w-full h-full border-0 filter contrast-105"
+                    loading="lazy"
+                    allowFullScreen
+                  />
+
+                  <div className="absolute top-3 left-3 bg-slate-900/90 backdrop-blur-md px-3 py-2 rounded-xl border border-cyan-500/50 shadow-2xl text-xs font-mono pointer-events-none">
+                    <div className="flex items-center gap-2 text-cyan-400 font-bold">
+                      <span className="text-lg">🌀</span>
+                      <span>EYE OF {currentStorm.name.split(" ")[currentStorm.name.split(" ").length - 1]}</span>
+                    </div>
+                    <div className="text-slate-300 mt-1">
+                      Coordinates: <span className="text-amber-300 font-bold">{simulatedPosition.lat}°N, {simulatedPosition.lon}°E</span>
+                    </div>
+                    <div className="text-slate-400 text-[10px]">
+                      Max Winds: {currentStorm.windSpeedKnots}kt ({currentStorm.windKmh} km/h) • Pressure: {currentStorm.pressureHpa} hPa
+                    </div>
+                  </div>
+
+                  <div className="absolute bottom-3 right-3 bg-slate-900/95 backdrop-blur-md px-3 py-2 rounded-xl border border-slate-700 text-[10px] font-mono text-slate-300 flex flex-wrap items-center gap-3 shadow-2xl pointer-events-none">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                      <span>RMW Core (30km)</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                      <span>64kt Hurricane Gale (90km)</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
+                      <span>34kt Tropical Gale (220km)</span>
+                    </div>
+                  </div>
+                </div>
+
+                {activePinpoint && (
+                  <div className="bg-slate-950/90 border border-amber-500/40 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+                    <div className="flex items-center gap-2">
+                      <Icon name="crosshair" className="w-4 h-4 text-amber-400" />
+                      <span>Selected Sector: <strong className="text-white">{activePinpoint.name}</strong> ({activePinpoint.lat}°N, {activePinpoint.lon}°E)</span>
+                    </div>
+                    <div className="text-amber-300 font-bold">
+                      Direct Distance to Cyclone Eye: {calculateDistance(simulatedPosition.lat, simulatedPosition.lon, activePinpoint.lat, activePinpoint.lon)} Kilometers
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === "radar" && (
+              <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <Icon name="radio" className="w-5 h-5 text-cyan-400" />
+                    <h3 className="text-sm sm:text-base font-bold text-white uppercase">
+                      72-Hour Forecast Cone of Uncertainty & Coastal Inundation Zone
+                    </h3>
+                  </div>
+                  <span className="px-2.5 py-1 rounded bg-slate-950 text-cyan-300 border border-slate-800 text-xs font-mono">
+                    Consensus Models: IMD • ECMWF • GFS • JTWC
+                  </span>
+                </div>
+
+                <div className="relative w-full h-[360px] sm:h-[460px] bg-slate-950 rounded-xl border border-slate-800 overflow-hidden flex items-center justify-center">
+                  <svg viewBox="0 0 800 460" className="w-full h-full">
+                    <defs>
+                      <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" strokeWidth="0.5" />
+                      </pattern>
+                    </defs>
+                    <rect width="800" height="460" fill="url(#grid)" />
+
+                    <path
+                      d="M 220 0 Q 240 100 280 200 Q 320 300 290 460 L 0 460 L 0 0 Z"
+                      fill="#0f172a"
+                      stroke="#334155"
+                      strokeWidth="2"
+                    />
+                    <text x="50" y="230" fill="#64748b" fontSize="14" fontFamily="monospace" fontWeight="bold">MAINLAND COAST</text>
+
+                    <path
+                      d="M 215 50 Q 245 150 285 240 Q 325 320 285 420 L 260 420 Q 295 320 260 240 Q 220 150 195 50 Z"
+                      fill="#ef4444"
+                      opacity="0.35"
+                    />
+
+                    <path
+                      d="M 680 250 L 320 170 Q 270 240 320 310 Z"
+                      fill="#06b6d4"
+                      fillOpacity="0.18"
+                      stroke="#22d3ee"
+                      strokeWidth="1.5"
+                      strokeDasharray="4 4"
+                    />
+
+                    <path
+                      d="M 680 250 Q 490 245 290 235"
+                      fill="none"
+                      stroke="#f59e0b"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                    />
+
+                    <g transform="translate(680, 250)">
+                      <circle r="12" fill="#ef4444" className="animate-ping" opacity="0.6" />
+                      <circle r="7" fill="#ef4444" stroke="#fff" strokeWidth="2" />
+                      <text x="0" y="24" textAnchor="middle" fill="#fff" fontSize="11" fontFamily="monospace" fontWeight="bold">T-0 CURRENT</text>
+                    </g>
+
+                    <g transform="translate(480, 243)">
+                      <circle r="6" fill="#f59e0b" stroke="#fff" strokeWidth="1.5" />
+                      <text x="0" y="22" textAnchor="middle" fill="#f59e0b" fontSize="10" fontFamily="monospace">T+24h (120kt)</text>
+                    </g>
+
+                    <g transform="translate(360, 239)">
+                      <circle r="6" fill="#f59e0b" stroke="#fff" strokeWidth="1.5" />
+                      <text x="0" y="22" textAnchor="middle" fill="#f59e0b" fontSize="10" fontFamily="monospace">T+48h (110kt)</text>
+                    </g>
+
+                    <g transform="translate(290, 235)">
+                      <circle r="8" fill="#dc2626" stroke="#fff" strokeWidth="2" />
+                      <text x="-15" y="-14" textAnchor="end" fill="#f87171" fontSize="11" fontFamily="monospace" fontWeight="bold">LANDFALL TARGET</text>
+                    </g>
+                  </svg>
+
+                  <div className="absolute bottom-2.5 right-2.5 bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-700 text-[10px] font-mono text-slate-300 flex items-center gap-3">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                      <span>Surge Zone (+5m)</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-3 h-1 bg-amber-400" />
+                      <span>Consensus Track</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded bg-cyan-500/30 border border-cyan-400" />
+                      <span>72h Probability Cone</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "structure" && (
+              <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <Icon name="layers" className="w-5 h-5 text-purple-400" />
+                    <div>
+                      <h3 className="text-sm sm:text-base font-bold text-white uppercase">
+                        Vertical Eyewall Atmospheric Cross-Section (0 - 18 km Altitude)
+                      </h3>
+                      <p className="text-xs text-slate-400">
+                        Parametric Stadium Slope Effect, Warm-Core Chimney & Tropopause Cirrus Canopy (-78°C)
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded bg-purple-500/20 text-purple-300 font-mono text-xs font-bold border border-purple-500/30">
+                    STADIUM SLOPE: 45°
+                  </span>
+                </div>
+
+                <div className="relative w-full h-[340px] sm:h-[400px] bg-slate-950 rounded-xl border border-slate-800 overflow-hidden flex items-center justify-center p-2 sm:p-4">
+                  <svg viewBox="0 0 800 360" className="w-full h-full">
+                    <line x1="60" y1="50" x2="760" y2="50" stroke="#334155" strokeDasharray="3 3" />
+                    <text x="50" y="54" textAnchor="end" fill="#94a3b8" fontSize="10" fontFamily="monospace">18km (Tropopause)</text>
+
+                    <line x1="60" y1="140" x2="760" y2="140" stroke="#334155" strokeDasharray="3 3" />
+                    <text x="50" y="144" textAnchor="end" fill="#94a3b8" fontSize="10" fontFamily="monospace">10km (Mid Tropo)</text>
+
+                    <line x1="60" y1="230" x2="760" y2="230" stroke="#334155" strokeDasharray="3 3" />
+                    <text x="50" y="234" textAnchor="end" fill="#94a3b8" fontSize="10" fontFamily="monospace">4km (Freezing)</text>
+
+                    <line x1="60" y1="310" x2="760" y2="310" stroke="#0ea5e9" strokeWidth="2" />
+                    <text x="50" y="314" textAnchor="end" fill="#38bdf8" fontSize="10" fontFamily="monospace">0km (Sea 31°C)</text>
+
+                    <path d="M 120 50 L 330 310 L 290 310 L 80 50 Z" fill="#ef4444" opacity="0.8" />
+                    <path d="M 680 50 L 470 310 L 510 310 L 720 50 Z" fill="#ef4444" opacity="0.8" />
+
+                    <rect x="360" y="60" width="80" height="250" fill="#f59e0b" opacity="0.15" />
+                    <line x1="400" y1="70" x2="400" y2="290" stroke="#f59e0b" strokeWidth="2" strokeDasharray="4 4" />
+                    <text x="400" y="180" textAnchor="middle" fill="#fbbf24" fontSize="12" fontFamily="monospace" fontWeight="bold">
+                      DESCENDING WARM CORE (EYE)
+                    </text>
+
+                    <path d="M 280 290 L 160 80" stroke="#38bdf8" strokeWidth="2.5" strokeDasharray="5 3" />
+                    <path d="M 520 290 L 640 80" stroke="#38bdf8" strokeWidth="2.5" strokeDasharray="5 3" />
+
+                    <text x="210" y="190" fill="#fff" fontSize="11" fontFamily="monospace" fontWeight="bold">VIOLENT UPDRAFT</text>
+                    <text x="590" y="190" fill="#fff" fontSize="11" fontFamily="monospace" fontWeight="bold">VIOLENT UPDRAFT</text>
+                  </svg>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "alerts" && (
+              <div className="space-y-5">
+                <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <Icon name="speaker" className="w-5 h-5 text-cyan-400" />
+                      <h3 className="text-sm sm:text-base font-bold text-white uppercase">
+                        Emergency Alert Broadcaster & Multilingual Audio Synthesizer
+                      </h3>
+                    </div>
+                    <span className="text-xs text-slate-400 font-mono">100% Offline Compatible (Chrome Voice Engine)</span>
+                  </div>
+
+                  <form onSubmit={handlePostAlert} className="space-y-3">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <select
+                        value={alertLanguage}
+                        onChange={(e) => setAlertLanguage(e.target.value)}
+                        className="bg-slate-950 text-cyan-300 px-3 py-2 rounded-xl border border-slate-700 text-xs font-mono"
+                      >
+                        <option value="English">Broadcast Language: English</option>
+                        <option value="Odia">Broadcast Language: Odia</option>
+                        <option value="Hindi">Broadcast Language: Hindi</option>
+                        <option value="Bengali">Broadcast Language: Bengali</option>
+                        <option value="Spanish">Broadcast Language: Spanish</option>
+                      </select>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const sample = `Urgent alert from Civil Protection: Cyclone ${currentStorm.name} is making landfall near ${currentStorm.landfallTarget}. Evacuate immediately to concrete cyclone shelters.`;
+                          setBroadcastInput(sample);
+                        }}
+                        className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono transition cursor-pointer"
+                      >
+                        Load Official Template
+                      </button>
+                    </div>
+
+                    <textarea
+                      rows="3"
+                      value={broadcastInput}
+                      onChange={(e) => setBroadcastInput(e.target.value)}
+                      placeholder="Type official emergency warning bulletin here to broadcast across siren towers, SMS cells, and VHF channels..."
+                      className="w-full bg-slate-950 border border-slate-700 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 rounded-xl p-3 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none"
+                    />
+
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => broadcastInput && playSpeechWarning(broadcastInput, alertLanguage)}
+                        disabled={!broadcastInput.trim()}
+                        className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-1.5 transition disabled:opacity-50 cursor-pointer"
+                      >
+                        <Icon name="speaker" className="w-4 h-4" />
+                        <span>Test Voice Audio</span>
+                      </button>
+
+                      <button
+                        type="submit"
+                        disabled={!broadcastInput.trim()}
+                        className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-md transition disabled:opacity-50 cursor-pointer"
+                      >
+                        <Icon name="shield" className="w-4 h-4" />
+                        <span>Publish & Save Bulletin</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">
+                    Active Bulletins In Circulation (Persisted in LocalStorage)
+                  </h4>
+                  {customAlerts.map((alt) => (
+                    <div key={alt.id} className="bg-slate-900/80 border border-slate-800 rounded-xl p-3.5 sm:p-4 shadow-md space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-red-500/20 text-red-400 border border-red-500/30">
+                          {alt.level}
+                        </span>
+                        <span className="text-xs text-slate-500 font-mono">{alt.time}</span>
+                      </div>
+                      <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-sans">{alt.text}</p>
+                      <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono pt-2 border-t border-slate-800/80">
+                        <span>Target: {alt.audience}</span>
+                        <button
+                          onClick={() => playSpeechWarning(alt.text)}
+                          className="text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer font-bold"
+                        >
+                          <Icon name="speaker" className="w-3.5 h-3.5" />
+                          <span>Play Audio Siren</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "sos" && (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/90 border border-slate-800 rounded-2xl p-4">
+                  <div>
+                    <h3 className="text-sm sm:text-base font-bold text-white uppercase flex items-center gap-2">
+                      <Icon name="sos" className="w-5 h-5 text-red-400" />
+                      <span>Live Resident Distress SOS Inbox & Dispatch Board</span>
+                    </h3>
+                    <p className="text-xs text-slate-400 font-mono">
+                      Emergency response triage, NDRF/Coast Guard convoy dispatch, and high-water rescue
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => setNewSosModal(true)}
+                    className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-lg shadow-red-600/20"
+                  >
+                    <Icon name="alert" className="w-4 h-4" />
+                    <span>Simulate Citizen Distress Call</span>
+                  </button>
+                </div>
+
+                <div className="bg-slate-900/95 border-2 border-cyan-500/40 rounded-xl p-3.5 sm:p-4 flex items-start gap-3 text-xs text-slate-300 shadow-xl">
+                  <div className="p-2 rounded-lg bg-cyan-950 text-cyan-400 border border-cyan-500/30 shrink-0">
+                    <Icon name="shield" className="w-5 h-5" />
+                  </div>
+                  <div className="leading-relaxed">
+                    <div className="font-bold font-mono text-cyan-300 text-xs sm:text-sm uppercase mb-1">
+                      Privacy Disclosure & Synthetic Data Verification
+                    </div>
+                    <p>
+                      <strong>Are the telephone numbers in this board real?</strong> <span className="text-emerald-400 font-bold">NO, THEY ARE 100% SYNTHETIC AND SIMULATED.</span> All resident names and telephone numbers (such as <code className="bg-slate-950 px-1.5 py-0.5 rounded text-amber-300 font-mono">+91-94371-XXXXX</code>) displayed in this dispatch board are mock simulated records created solely for training, emergency civil defense drills, and UI prototyping. No real persons or private cellular numbers are ever exposed, stored, or dialed.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
+                  {sosPings.map((ping) => (
+                    <div
+                      key={ping.id}
+                      className={`p-3.5 sm:p-4 rounded-xl border transition flex flex-col justify-between ${
+                        ping.dispatched
+                          ? "bg-slate-950/70 border-slate-800 opacity-80"
+                          : "bg-red-950/20 border-red-500/40 shadow-lg"
+                      }`}
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-slate-100">{ping.residentName}</span>
+                          <span className="font-mono text-slate-500 text-[11px]">{ping.timestamp}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[11px] font-mono text-cyan-300 flex-wrap">
+                          <span>{ping.location}</span>
+                          <span>•</span>
+                          <span className="text-amber-300 font-semibold">{ping.phone}</span>
+                        </div>
+                        <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/50 p-2.5 rounded-lg border border-slate-800/80">
+                          "{ping.details}"
+                        </p>
+                      </div>
+
+                      <div className="mt-3.5 pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                            ping.dispatched
+                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                              : "bg-red-500/20 text-red-300 border border-red-500/30"
+                          }`}
+                        >
+                          {ping.dispatched ? "CONVOY DISPATCHED" : "UNRESOLVED - HIGH PRIORITY"}
+                        </span>
+
+                        <button
+                          onClick={() => handleToggleDispatch(ping.id)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer shrink-0 ${
+                            ping.dispatched
+                              ? "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                              : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20"
+                          }`}
+                        >
+                          {ping.dispatched ? "Mark as Pending" : "Dispatch Rescue Team"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </main>
+
+          {newSosModal && (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+              <div className="bg-slate-900 border border-red-500/50 rounded-2xl p-4 sm:p-5 max-w-md w-full shadow-2xl space-y-4">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-800">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Icon name="alert" className="w-4 h-4 text-red-400" />
+                    <span>Simulate Citizen Distress Ping</span>
+                  </h3>
+                  <button
+                    onClick={() => setNewSosModal(false)}
+                    className="text-slate-400 hover:text-white px-2 py-1 rounded cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <form onSubmit={handleAddSos} className="space-y-3 text-xs">
+                  <div>
+                    <label className="text-slate-400 block mb-1">Citizen / Family Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={sosForm.name}
+                      onChange={(e) => setSosForm({ ...sosForm, name: e.target.value })}
+                      placeholder="e.g., Manoj Jena (Family of 5)"
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-400 block mb-1">Exact Location / Landmark</label>
+                    <input
+                      type="text"
+                      required
+                      value={sosForm.location}
+                      onChange={(e) => setSosForm({ ...sosForm, location: e.target.value })}
+                      placeholder="e.g., Near Konark Marine Drive Pier #4"
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-400 block mb-1">Contact Phone (Automatically Masked for Privacy)</label>
+                    <input
+                      type="text"
+                      value={sosForm.phone}
+                      onChange={(e) => setSosForm({ ...sosForm, phone: e.target.value })}
+                      placeholder="+91-98765-43210"
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-400 block mb-1">Emergency Description</label>
+                    <textarea
+                      rows="2"
+                      value={sosForm.details}
+                      onChange={(e) => setSosForm({ ...sosForm, details: e.target.value })}
+                      placeholder="e.g., Ground floor submerged under 1.5m flood tide. Roof access available."
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setNewSosModal(false)}
+                      className="px-3 py-2 rounded-lg bg-slate-800 text-slate-300 font-bold cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold cursor-pointer"
+                    >
+                      Broadcast Distress Ping
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          <footer className="bg-slate-950 border-t border-slate-900 mt-8 py-5 px-4 text-center text-xs text-slate-500 font-mono">
+            <div className="w-full max-w-[1720px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+              <div>
+                INSAT-3D / IMD TROPICAL CYCLONE FORECASTING & EARLY WARNING SYSTEM
+              </div>
+              <div className="text-[11px] text-slate-600">
+                RUNS IN GOOGLE CHROME VIA FILE:// • PERSISTS TO LOCALSTORAGE • ZERO BUILD REQUIRED
+              </div>
+            </div>
+          </footer>
+        </div>
+      );
+    }
+
+    const rootElement = document.getElementById("root");
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(<MainApp />);
+  </script>
+</body>
+</html>

@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+  <title>IMD INSAT-3D Tropical Cyclone & Weather Tracker</title>
+  <meta name="description" content="INSAT-3D / IMD Official Theme Tropical Cyclone & Weather Tracking Station with live radar, 🌀 storm eye position, evacuation corridors, and audio alerts." />
+  <meta name="theme-color" content="#061224" />
+  <style>
+    :root {
+      --bg-dark: #050e1d;
+      --card-bg: #0b1a30;
+      --card-border: #162c4e;
+      --accent-cyan: #06b6d4;
+      --accent-blue: #3b82f6;
+      --imd-red: #ef4444;
+      --imd-orange: #f97316;
+      --imd-yellow: #eab308;
+      --imd-green: #22c55e;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      line-height: 1.5;
+      padding-bottom: 40px;
+      overflow-x: hidden;
+    }
+
+    /* Container */
+    .container {
+      width: 100%;
+      max-width: 1720px;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+
+    /* Header */
+    header {
+      background: rgba(8, 22, 43, 0.95);
+      border-bottom: 1px solid var(--card-border);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+
+    .top-status {
+      background: #020712;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding: 6px 0;
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--text-muted);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--imd-red);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.3; transform: scale(1.3); }
+    }
+
+    @keyframes cycloneSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes cycloneSpinReverse {
+      from { transform: rotate(360deg); }
+      to { transform: rotate(0deg); }
+    }
+    @keyframes pulseWave {
+      0% { transform: scale(0.65); opacity: 0.85; }
+      50% { opacity: 0.4; }
+      100% { transform: scale(1.45); opacity: 0; }
+    }
+    @keyframes pulseWaveOuter {
+      0% { transform: scale(0.8); opacity: 0.75; }
+      50% { opacity: 0.35; }
+      100% { transform: scale(1.9); opacity: 0; }
+    }
+    @keyframes radarPulseRing {
+      0%, 100% { transform: scale(1); opacity: 0.75; }
+      50% { transform: scale(1.06); opacity: 0.35; }
+    }
+    .animate-cyclone-spin {
+      animation: cycloneSpin 3.5s linear infinite;
+      display: inline-block;
+    }
+    .animate-cyclone-spin-reverse {
+      animation: cycloneSpinReverse 7s linear infinite;
+    }
+    .animate-pulse-wave {
+      animation: pulseWave 2.2s cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
+    }
+    .animate-pulse-wave-outer {
+      animation: pulseWaveOuter 3.2s cubic-bezier(0.2, 0.6, 0.4, 1) infinite 0.7s;
+    }
+    .animate-radar-ring {
+      animation: radarPulseRing 2.8s ease-in-out infinite;
+    }
+
+    .nav-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .logo-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 0 15px rgba(2, 132, 199, 0.4);
+    }
+
+    .logo-text h1 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: #fff;
+    }
+
+    .logo-text p {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .storm-select {
+      background: #040c1a;
+      color: var(--accent-cyan);
+      border: 1px solid var(--card-border);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* Warning Banner */
+    .warning-banner {
+      background: linear-gradient(90deg, rgba(239,68,68,0.2) 0%, rgba(11,26,48,0.8) 100%);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin: 20px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .warning-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .warning-icon {
+      font-size: 26px;
+    }
+
+    .warning-title {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .warning-desc {
+      font-size: 0.8rem;
+      color: #cbd5e1;
+    }
+
+    .banner-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-red {
+      background: var(--imd-red);
+      color: #fff;
+    }
+    .btn-red:hover { background: #dc2626; }
+
+    .btn-cyan {
+      background: var(--accent-cyan);
+      color: #04101f;
+    }
+    .btn-cyan:hover { background: #22d3ee; }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+    }
+    .btn-outline:hover { background: rgba(255,255,255,0.05); }
+
+    /* Main Grid */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    @media (min-width: 992px) {
+      .dashboard-grid {
+        grid-template-columns: 2fr 1fr;
+      }
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    }
+
+    .card-title {
+      font-size: 0.9rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      letter-spacing: 0.5px;
+      color: var(--accent-cyan);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding-bottom: 10px;
+    }
+
+    /* Radar Canvas Map */
+    .radar-wrapper {
+      position: relative;
+      width: 100%;
+      height: 480px;
+      background: #020917;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--card-border);
+    }
+
+    canvas#radarCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .map-overlay-badge {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      background: rgba(3, 10, 24, 0.9);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      pointer-events: none;
+    }
+
+    .map-controls {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      display: flex;
+      gap: 6px;
+      z-index: 10;
+    }
+
+    .map-pill-btn {
+      background: rgba(8, 22, 43, 0.9);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-family: var(--font-mono);
+      cursor: pointer;
+    }
+    .map-pill-btn.active {
+      background: var(--accent-cyan);
+      color: #04101f;
+      font-weight: bold;
+    }
+
+    /* Telemetry Metric Cards */
+    .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    @media (min-width: 640px) {
+      .metrics-row {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .metric-card {
+      background: #051022;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 12px;
+      text-align: left;
+    }
+
+    .metric-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+    }
+
+    .metric-value {
+      font-size: 1.4rem;
+      font-weight: 900;
+      font-family: var(--font-mono);
+      margin: 4px 0;
+    }
+
+    .metric-sub {
+      font-size: 0.68rem;
+      color: var(--accent-cyan);
+    }
+
+    /* Audio Alert Broadcast Module */
+    .audio-box {
+      background: linear-gradient(135deg, #101c36, #091429);
+      border: 1px solid #1e3a66;
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+
+    .audio-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .audio-title {
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .audio-text {
+      background: #030a16;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 0.78rem;
+      color: #e2e8f0;
+      line-height: 1.5;
+      font-family: var(--font-mono);
+      margin-bottom: 12px;
+    }
+
+    .audio-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .lang-select {
+      background: #030914;
+      border: 1px solid var(--card-border);
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+    }
+
+    /* Evacuation List */
+    .corridor-item {
+      background: #061226;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .corridor-info h4 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .corridor-info p {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    .tag-active {
+      background: rgba(34, 197, 94, 0.2);
+      color: #86efac;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      white-space: nowrap;
+    }
+
+    /* Q&A Query Assistant */
+    .search-box {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .search-input {
+      flex: 1;
+      background: #040c1a;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: #fff;
+      font-size: 0.8rem;
+      outline: none;
+    }
+    .search-input:focus { border-color: var(--accent-cyan); }
+
+    .ans-card {
+      background: #051022;
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 0.8rem;
+      color: #e2e8f0;
+      line-height: 1.6;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 30px 0;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      border-top: 1px solid var(--card-border);
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Geostationary Feed Bar -->
+  <header>
+    <div class="top-status">
+      <div class="container" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div class="status-badge">
+            <span class="pulse-dot"></span>
+            <span>IMD CYCLONE BULLETIN ACTIVE</span>
+          </div>
+          <span style="display: none;" class="desktop-only">INSAT-3D METEOSAT SATELLITE: SYNCHRONIZED</span>
+        </div>
+        <div style="color: #67e8f9;">
+          UTC <span id="clockUtc">--:--:--</span> | IST <span id="clockIst">--:--:--</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="container nav-bar">
+      <div class="logo-group">
+        <div class="logo-icon">🌀</div>
+        <div class="logo-text">
+          <h1>IMD CYCLONE WEATHER TRACKER</h1>
+          <p>INSAT-3D & 3DR Geostationary Radiometry • Bay of Bengal & Arabian Sea</p>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <label style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">STORM:</label>
+        <select id="stormSelect" class="storm-select" onchange="changeStorm(this.value)">
+          <option value="amir">Super Cyclone AMIR (145 kt / Bay of Bengal)</option>
+          <option value="zephyr">Severe Cyclone ZEPHYR (110 kt / Arabian Sea)</option>
+          <option value="marina">Super Typhoon MARINA (155 kt / W. Pacific)</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- IMD RED ALERT BANNER -->
+    <div class="warning-banner">
+      <div class="warning-info">
+        <div class="warning-icon">🚨</div>
+        <div>
+          <div class="warning-title" id="bannerTitle">EXTREME RED ALERT: SUPER CYCLONE AMIR</div>
+          <div class="warning-desc" id="bannerDesc">
+            Landfall expected in Coastal Odisha & Sundarbans in 16 hours. Maximum winds 145 knots with 4.8m storm surge inundation.
+          </div>
+        </div>
+      </div>
+      <div class="banner-actions">
+        <button class="btn btn-red" onclick="speakEmergencyAlert()">🔊 Voice Broadcast</button>
+        <button class="btn btn-cyan" onclick="testSiren()">⚠️ Test Siren</button>
+      </div>
+    </div>
+
+    <!-- MAIN TWO-COLUMN DASHBOARD -->
+    <div class="dashboard-grid">
+      <!-- LEFT COLUMN: RADAR MAP & METRICS -->
+      <div>
+        <div class="card">
+          <div class="card-title">
+            <span>🗺️ GOOGLE MAPS SATELLITE CYCLONE TRACKER (HYBRID SATELLITE & ROADWAYS)</span>
+          </div>
+
+          <!-- Interactive Google Maps Hybrid Interface (Identical to Web App) -->
+          <div class="radar-wrapper" id="radarWrapper">
+            <div class="map-overlay-badge" id="radarBadge">
+              <div>CYCLONE EYE: <strong style="color: #f87171;" id="badgeName">AMIR (Cat 5)</strong></div>
+              <div>COORDINATES: <span style="color: #38bdf8;" id="badgeCoords">19.4°N, 87.2°E</span></div>
+              <div>CENTRAL EYE: <strong style="color: #fbbf24;">🌀 ACTIVE EYEWALL</strong></div>
+            </div>
+
+            <div class="map-controls">
+              <div class="map-pill-btn active" style="cursor: default; pointer-events: none;">🗺️ Hybrid (Satellite + Roads)</div>
+              <button class="map-pill-btn" onclick="centerCycloneOnMap()">Center 🌀</button>
+            </div>
+
+            <!-- Google Maps Live Hybrid Satellite Frame with Animated 🌀 and Concentric Circles -->
+            <div id="gmapsFrameContainer" style="width: 100%; height: 100%; position: relative;">
+              <!-- Full Screen Symbol Only Button (Identical to Google Maps) -->
+              <button onclick="toggleGmapsFullscreen()" id="gmapsFsIconBtn" title="Toggle full screen" aria-label="Toggle full screen" style="position: absolute; top: 10px; right: 10px; z-index: 30; width: 36px; height: 36px; border-radius: 8px; background: rgba(2, 6, 23, 0.9); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.6); transition: all 0.2s;">
+                <span id="gmapsFsIcon">⛶</span>
+              </button>
+              <!-- Pure Google Maps JS API Container (No Frame View) -->
+              <div id="gmapsCanvas" style="width: 100%; height: 100%; background: #030712; position: absolute; inset: 0;"></div>
+              <div style="position: absolute; inset: 0; pointer-events: none; display: flex; align-items: center; justify-content: center;">
+                <div style="position: relative; width: 140px; height: 140px; display: flex; align-items: center; justify-content: center; pointer-events: auto;">
+                  <!-- Outer Animated Pulsing Wave Circle (34kt boundary) -->
+                  <div class="animate-pulse-wave-outer" style="position: absolute; width: 130px; height: 130px; border-radius: 50%; border: 2px dashed rgba(234, 179, 8, 0.7); background: radial-gradient(circle, rgba(234, 179, 8, 0.12) 0%, rgba(234, 179, 8, 0) 70%);"></div>
+
+                  <!-- Mid Animated Pulsing Wave Circle (50kt storm ring) -->
+                  <div class="animate-pulse-wave" style="position: absolute; width: 90px; height: 90px; border-radius: 50%; border: 2px solid rgba(249, 115, 22, 0.85); background: radial-gradient(circle, rgba(249, 115, 22, 0.18) 0%, rgba(249, 115, 22, 0) 70%);"></div>
+
+                  <!-- Rotating Radar Dashed Ring (Counter-clockwise vortex) -->
+                  <div class="animate-cyclone-spin-reverse" style="position: absolute; width: 68px; height: 68px; border-radius: 50%; border: 2px dashed #ef4444;"></div>
+
+                  <!-- Inner Eyewall Shockwave Circle -->
+                  <div class="animate-radar-ring" style="position: absolute; width: 52px; height: 52px; border-radius: 50%; border: 2.5px solid #ef4444; background: rgba(239, 68, 68, 0.25);"></div>
+
+                  <!-- Central Eye Core Button with Fast Rotating 🌀 Symbol -->
+                  <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(3, 10, 24, 0.92); border: 2px solid #ffffff; box-shadow: 0 0 20px rgba(239, 68, 68, 0.8); display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                    <span class="animate-cyclone-spin" style="font-size: 26px; user-select: none;">🌀</span>
+                  </div>
+
+                  <!-- Floating Storm Identifier Badge -->
+                  <div id="gmapsMarkerTag" style="position: absolute; top: 104px; background: rgba(2, 6, 23, 0.95); border: 1px solid #ef4444; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-family: monospace; font-weight: bold; color: #fff; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.8);">
+                    🌀 Super Cyclone AMIR (19.4°N, 87.2°E)
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Telemetry Metrics Bar -->
+          <div class="metrics-row">
+            <div class="metric-card">
+              <div class="metric-label">Central Pressure</div>
+              <div class="metric-value" style="color: #fbbf24;" id="valPressure">918 <span style="font-size:0.8rem">hPa</span></div>
+              <div class="metric-sub" id="subPressure">Extremely Deep Core</div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-label">Max Sustained Winds</div>
+              <div class="metric-value" style="color: #38bdf8;" id="valWinds">145 <span style="font-size:0.8rem">kt</span></div>
+              <div class="metric-sub" id="subWinds">268 km/h • Gusts 175 kt</div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-label">Peak Storm Surge</div>
+              <div class="metric-value" style="color: #f87171;" id="valSurge">4.8 <span style="font-size:0.8rem">m</span></div>
+              <div class="metric-sub">Astronomical High Tide</div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-label">Landfall Countdown</div>
+              <div class="metric-value" style="color: #4ade80;" id="valLandfall">16 <span style="font-size:0.8rem">hrs</span></div>
+              <div class="metric-sub" id="subLandfall">Odisha Coastline</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AUDIO ALERT & BROADCAST CONSOLE -->
+        <div class="card" style="margin-top: 20px;">
+          <div class="card-title">
+            <span>📢 MULTILINGUAL VOICE ANNOUNCEMENT & EMERGENCY BROADCAST</span>
+          </div>
+
+          <div class="audio-box">
+            <div class="audio-header">
+              <div class="audio-title">
+                <span>🎙️ Automated Emergency Broadcast Audio Announcement</span>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <select id="audioLang" class="lang-select" onchange="updateAnnouncementLang(this.value)">
+                  <option value="en">Language: English</option>
+                  <option value="hi">Language: Hindi (हिन्दी)</option>
+                  <option value="or">Language: Odia (ଓଡ଼ିଆ)</option>
+                  <option value="bn">Language: Bengali (বাংলা)</option>
+                  <option value="ta">Language: Tamil (தமிழ்)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="audio-text" id="announcementText">
+              "Attention. This is an official emergency bulletin from the India Meteorological Department. Cyclone AMIR is advancing toward coastal Odisha with sustained winds of 145 knots and a 4.8-meter marine storm surge. Mandatory evacuation is in effect for all coastal Red Zone sectors. Move immediately to certified concrete storm shelters. Dial 112 for rescue."
+            </div>
+
+            <div class="audio-controls">
+              <button class="btn btn-red" onclick="speakEmergencyAlert()">
+                <span>▶ Play Audio Announcement</span>
+              </button>
+              <button class="btn btn-outline" onclick="stopAudio()">
+                <span>⏹ Stop Audio</span>
+              </button>
+              <span id="audioPlayingStatus" style="font-size: 0.75rem; color: #4ade80; font-family: var(--font-mono); display: none;">
+                ● BROADCAST AUDIO ACTIVE
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: EVACUATION & IMD ASSISTANT -->
+      <div>
+        <!-- Evacuation Corridors -->
+        <div class="card">
+          <div class="card-title">
+            <span>🛣️ AUTOMATED EVACUATION CORRIDORS</span>
+          </div>
+
+          <div id="corridorList">
+            <div class="corridor-item">
+              <div class="corridor-info">
+                <h4>NH-53 Expressway Contraflow</h4>
+                <p>Paradip Coastal Belt → Cuttack Fortress (84 km)</p>
+              </div>
+              <span class="tag-active">Active • Contraflow</span>
+            </div>
+
+            <div class="corridor-item">
+              <div class="corridor-info">
+                <h4>Kendrapara Inland Ridge Route</h4>
+                <p>Delta Shoreline → Jajpur Civil Bunker (68 km)</p>
+              </div>
+              <span class="tag-active">Open • Convoys</span>
+            </div>
+
+            <div class="corridor-item">
+              <div class="corridor-info">
+                <h4>Balasore North Arterial Bypass</h4>
+                <p>Tidal Plain → Baripada High Haven (76 km)</p>
+              </div>
+              <span class="tag-active" style="background: rgba(234,179,8,0.2); color:#fef08a; border-color: rgba(234,179,8,0.3);">
+                Heavy Traffic
+              </span>
+            </div>
+          </div>
+
+          <button class="btn btn-outline" style="width: 100%; justify-content: center; margin-top: 10px;" onclick="alert('Priority Evacuation Notice: Free toll passage active on NH-53. 45 military transport buses deployed for elderly and non-ambulatory hospital patients.')">
+            View Traffic Directives
+          </button>
+        </div>
+
+        <!-- IMD Meteorological Assistant -->
+        <div class="card" style="margin-top: 20px;">
+          <div class="card-title">
+            <span>🔍 METEOROLOGICAL & SAFETY ASSISTANT</span>
+          </div>
+
+          <div class="search-box">
+            <input type="text" id="queryInput" class="search-input" placeholder="Ask anything: 'What is storm surge?', 'Eyewall replacement'..." onkeydown="if(event.key==='Enter') searchKnowledge()" />
+            <button class="btn btn-cyan" onclick="searchKnowledge()">Ask</button>
+          </div>
+
+          <div class="ans-card" id="ansCard">
+            <strong>IMD Automated Meteorological Knowledge Base:</strong>
+            <p style="margin-top: 6px;">
+              Super cyclones draw immense kinetic power from sea surface temperatures exceeding 26.5°C coupled with low vertical wind shear (&lt;10 knots). The eyewall features the highest gale velocities; stay sheltered until the storm fully passes.
+            </p>
+          </div>
+        </div>
+
+        <!-- Citizen Emergency Go-Bag Checklist -->
+        <div class="card" style="margin-top: 20px;">
+          <div class="card-title">
+            <span>🎒 EMERGENCY 72-HOUR GO-BAG CHECKLIST</span>
+          </div>
+          <div style="font-size: 0.78rem; font-family: var(--font-mono); color: #cbd5e1; display: flex; flex-direction: column; gap: 8px;">
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" checked /> 4L drinking water per person / day
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" checked /> Battery/hand-crank emergency radio
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" checked /> Dry rations, ORS salts, personal prescriptions
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" checked /> Sealed waterproof pouch for ID & deeds
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" checked /> Power banks charged & offline GPS maps
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>India Meteorological Department (IMD) • INSAT-3D/3DR Earth Observation Science Data System</p>
+      <p style="margin-top: 4px; color: #475569;">WMO Regional Specialized Meteorological Centre (RSMC) New Delhi Protocol Compliant</p>
+    </div>
+  </footer>
+
+  <script>
+    // Cyclone Database
+    const STORMS = {
+      amir: {
+        name: "Super Cyclone AMIR",
+        category: "Category 5 / Super Cyclone",
+        basin: "Bay of Bengal",
+        winds: 145,
+        pressure: 918,
+        surge: 4.8,
+        landfallHrs: 16,
+        target: "Coastal Odisha & Sundarbans",
+        coords: "19.4°N, 87.2°E",
+        lat: 19.4,
+        lon: 87.2
+      },
+      zephyr: {
+        name: "Severe Cyclone ZEPHYR",
+        category: "Category 3 / Very Severe",
+        basin: "Arabian Sea",
+        winds: 110,
+        pressure: 954,
+        surge: 3.5,
+        landfallHrs: 22,
+        target: "Saurashtra Coast & Kutch",
+        coords: "21.2°N, 68.8°E",
+        lat: 21.2,
+        lon: 68.8
+      },
+      marina: {
+        name: "Super Typhoon MARINA",
+        category: "Category 5 / Super Typhoon",
+        basin: "Western Pacific",
+        winds: 155,
+        pressure: 906,
+        surge: 5.6,
+        landfallHrs: 14,
+        target: "Eastern Luzon Coast",
+        coords: "18.2°N, 124.6°E",
+        lat: 18.2,
+        lon: 124.6
+      }
+    };
+
+    let currentStormKey = "amir";
+
+    // Update Live Clocks
+    function updateClocks() {
+      const now = new Date();
+      document.getElementById("clockUtc").textContent = now.toUTCString().slice(17, 25);
+      const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+      document.getElementById("clockIst").textContent = istTime.toUTCString().slice(17, 25);
+    }
+    setInterval(updateClocks, 1000);
+    updateClocks();
+
+    // Change Selected Cyclone
+    function changeStorm(key) {
+      currentStormKey = key;
+      const s = STORMS[key];
+      document.getElementById("bannerTitle").textContent = `EXTREME ALERT: ${s.name.toUpperCase()}`;
+      document.getElementById("bannerDesc").textContent = `Landfall expected in ${s.target} in ${s.landfallHrs} hours. Maximum sustained winds ${s.winds} knots with ${s.surge}m storm surge.`;
+      document.getElementById("badgeName").textContent = `${s.name.split(" ")[2] || s.name} (${s.category.split("/")[0]})`;
+      document.getElementById("badgeCoords").textContent = s.coords;
+
+      document.getElementById("valPressure").innerHTML = `${s.pressure} <span style="font-size:0.8rem">hPa</span>`;
+      document.getElementById("valWinds").innerHTML = `${s.winds} <span style="font-size:0.8rem">kt</span>`;
+      document.getElementById("subWinds").textContent = `${Math.round(s.winds * 1.852)} km/h • Gusts ${Math.round(s.winds * 1.25)} kt`;
+      document.getElementById("valSurge").innerHTML = `${s.surge} <span style="font-size:0.8rem">m</span>`;
+      document.getElementById("valLandfall").innerHTML = `${s.landfallHrs} <span style="font-size:0.8rem">hrs</span>`;
+      document.getElementById("subLandfall").textContent = s.target.split("&")[0];
+
+      // Update Google Maps JS API position (Hybrid Satellite + Roadways)
+      if (gmapInstance) {
+        gmapInstance.panTo({ lat: s.lat, lng: s.lon });
+      }
+      const markerTag = document.getElementById("gmapsMarkerTag");
+      if (markerTag) {
+        markerTag.textContent = `🌀 ${s.name} (${s.coords})`;
+      }
+
+      updateAnnouncementLang(document.getElementById("audioLang").value);
+    }
+
+    let gmapInstance = null;
+
+    function initGoogleMaps() {
+      const container = document.getElementById("gmapsCanvas");
+      if (!container || !window.google || !window.google.maps) return;
+      const s = STORMS[currentStormKey];
+      gmapInstance = new google.maps.Map(container, {
+        center: { lat: s.lat, lng: s.lon },
+        zoom: 7,
+        mapTypeId: google.maps.MapTypeId.HYBRID,
+        zoomControl: false, // Removed + and - symbol
+        streetViewControl: false,
+        fullscreenControl: false,
+        mapTypeControl: false,
+        gestureHandling: "greedy",
+        backgroundColor: "#030712"
+      });
+    }
+
+    // Load Google Maps API script dynamically for smooth JS API execution (No Frame View)
+    (function loadGoogleMapsScript() {
+      if (window.google && window.google.maps) {
+        initGoogleMaps();
+        return;
+      }
+      const s = document.createElement("script");
+      s.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyDC3toH5J2v09vITFEA6Vh1fN55Nfqm6KM&libraries=geometry";
+      s.async = true;
+      s.defer = true;
+      s.onload = () => {
+        initGoogleMaps();
+      };
+      document.head.appendChild(s);
+    })();
+
+    function centerCycloneOnMap() {
+      const s = STORMS[currentStormKey];
+      if (gmapInstance) {
+        gmapInstance.panTo({ lat: s.lat, lng: s.lon });
+        gmapInstance.setZoom(8);
+      }
+    }
+    window.resetRadarView = centerCycloneOnMap;
+
+    function toggleGmapsFullscreen() {
+      const el = document.getElementById("gmapsFrameContainer");
+      const icon = document.getElementById("gmapsFsIcon");
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (el.requestFullscreen) {
+          el.requestFullscreen();
+        } else if (el.webkitRequestFullscreen) {
+          el.webkitRequestFullscreen();
+        }
+        if (icon) icon.textContent = "✕";
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+        if (icon) icon.textContent = "⛶";
+      }
+      setTimeout(() => {
+        if (gmapInstance && window.google?.maps?.event) {
+          google.maps.event.trigger(gmapInstance, "resize");
+          const s = STORMS[currentStormKey];
+          gmapInstance.panTo({ lat: s.lat, lng: s.lon });
+        }
+      }, 150);
+    }
+    document.addEventListener("fullscreenchange", () => {
+      const icon = document.getElementById("gmapsFsIcon");
+      if (icon) {
+        icon.textContent = document.fullscreenElement ? "✕" : "⛶";
+      }
+      setTimeout(() => {
+        if (gmapInstance && window.google?.maps?.event) {
+          google.maps.event.trigger(gmapInstance, "resize");
+          const s = STORMS[currentStormKey];
+          gmapInstance.panTo({ lat: s.lat, lng: s.lon });
+        }
+      }, 150);
+    });
+
+    // Multilingual Announcements
+    const ANNOUNCEMENTS = {
+      en: (s) => `Attention. This is an urgent emergency broadcast from the India Meteorological Department. ${s.name}, ${s.category}, is approaching ${s.target} with sustained winds of ${s.winds} knots and a peak storm surge of ${s.surge} meters. Mandatory evacuation is ordered for all coastal red zone communities. Move immediately to certified concrete storm havens. Dial 112 for rescue.`,
+      hi: (s) => `सावधान। यह भारत मौसम विज्ञान विभाग का आपातकालीन चक्रवात बुलेटिन है। चक्रवात ${s.name} ${s.target} की ओर 145 नॉट की तीव्र हवाओं और 4.8 मीटर समुद्री लहरों के साथ बढ़ रहा है। सभी तटीय रेड जोन निवासियों से तत्काल पक्के चक्रवात आश्रयों में जाने का आग्रह है। सहायता के लिए 112 डायल करें।`,
+      or: (s) => `ସତର୍କ ସୂଚନା। ଏହା ଭାରତ ପାଣିପାଗ ବିଭାଗ (IMD) ର ଜରୁରୀକାଳୀନ ଘୂର୍ଣ୍ଣିଝଡ଼ ସତର୍କତା। ବାତ୍ୟା ${s.name} ୧୪୫ ନଟ୍ ବେଗରେ ଉପକୂଳ ଆଡ଼କୁ ଅଗ୍ରସର ହେଉଛି। ସମସ୍ତ ଉପକୂଳବାସୀ ତୁରନ୍ତ ପକ୍କା ବାତ୍ୟା ଆଶ୍ରୟସ୍ଥଳୀକୁ ଚାଲିଯାଆନ୍ତୁ। ସହାୟତା ପାଇଁ ୧୧୨ ଡାଏଲ କରନ୍ତୁ।`,
+      bn: (s) => `সতর্কবার্তা। এটি ভারতীয় আবহাওয়া অধিদপ্তরের জরুরী সাইক্লোন সতর্কবার্তা। ঘূর্ণিঝড় ${s.name} অত্যন্ত তীব্র গতিতে উপকূলের দিকে এগিয়ে আসছে। সমস্ত উপকূলবর্তী লাল অঞ্চলের বাসিন্দাদের অবিলম্বে পাকা আশ্রয়কেন্দ্রে সরে যাওয়ার নির্দেশ দেওয়া হচ্ছে। সহায়তার জন্য ১১২ ডায়াল করুন।`,
+      ta: (s) => `எச்சரிக்கை. இது இந்திய வானிலை ஆய்வு மையத்தின் அவசர புயல் அறிவிப்பு. புயல் ${s.name} மணிக்கு 145 நாட் வேகத்தில் கரையை நோக்கி நகர்கிறது. கரையோர மக்கள் உடனடியாக பாதுகாப்பான கான்கிரீட் தங்குமிடங்களுக்குச் செல்லுமாறு அறிவுறுத்தப்படுகிறார்கள். அவசர உதவிக்கு 112 ஐ அழைக்கவும்.`
+    };
+
+    function updateAnnouncementLang(lang) {
+      const s = STORMS[currentStormKey];
+      const fn = ANNOUNCEMENTS[lang] || ANNOUNCEMENTS.en;
+      document.getElementById("announcementText").textContent = `"${fn(s)}"`;
+    }
+
+    let isSpeakingSingleVoice = false;
+
+    // Web Speech API Voice Broadcast Synthesizer (Strictly Single Voice)
+    function speakEmergencyAlert() {
+      if (!("speechSynthesis" in window)) {
+        alert("Web Speech synthesis is not supported on this device.");
+        return;
+      }
+      // Immediately cancel any active speech synthesis to strictly prevent multiple voices
+      window.speechSynthesis.cancel();
+
+      if (isSpeakingSingleVoice) {
+        isSpeakingSingleVoice = false;
+        const badge = document.getElementById("audioPlayingStatus");
+        if (badge) badge.style.display = "none";
+        return;
+      }
+
+      const text = document.getElementById("announcementText").textContent.replace(/"/g, "");
+      const lang = document.getElementById("audioLang").value;
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 0.95;
+      if (lang === "hi") u.lang = "hi-IN";
+      else if (lang === "ta") u.lang = "ta-IN";
+      else if (lang === "bn") u.lang = "bn-IN";
+      else u.lang = "en-US";
+
+      const badge = document.getElementById("audioPlayingStatus");
+      u.onstart = () => {
+        isSpeakingSingleVoice = true;
+        if (badge) badge.style.display = "inline";
+      };
+      u.onend = () => {
+        isSpeakingSingleVoice = false;
+        if (badge) badge.style.display = "none";
+      };
+      u.onerror = () => {
+        isSpeakingSingleVoice = false;
+        if (badge) badge.style.display = "none";
+      };
+
+      setTimeout(() => {
+        window.speechSynthesis.speak(u);
+      }, 50);
+    }
+
+    function stopAudio() {
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+      isSpeakingSingleVoice = false;
+      const badge = document.getElementById("audioPlayingStatus");
+      if (badge) badge.style.display = "none";
+    }
+
+    // Web Audio API Emergency Siren Test
+    function testSiren() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+
+        const now = audioCtx.currentTime;
+        for (let i = 0; i < 4; i++) {
+          osc.frequency.linearRampToValueAtTime(880, now + i * 1.2 + 0.6);
+          osc.frequency.linearRampToValueAtTime(440, now + i * 1.2 + 1.2);
+        }
+
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(now + 4.8);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // IMD Assistant Knowledge Base Search
+    function searchKnowledge() {
+      const q = document.getElementById("queryInput").value.trim().toLowerCase();
+      if (!q) return;
+      const ansCard = document.getElementById("ansCard");
+
+      if (q.includes("surge") || q.includes("tide")) {
+        ansCard.innerHTML = `<strong>Storm Surge Hydrodynamics:</strong><br/>Storm surge occurs when extreme cyclonic winds push ocean water toward shallow continental shelves. In shallow estuaries like the Bay of Bengal, astronomical high tide aligns to amplify surge heights to 4.8+ meters, penetrating 10-15 km inland.`;
+      } else if (q.includes("eyewall") || q.includes("eye")) {
+        ansCard.innerHTML = `<strong>Eyewall Replacement Cycle (ERC):</strong><br/>In intense Category 4 & 5 cyclones, outer rainbands congeal into a secondary concentric ring that suffocates the inner eyewall. While peak central winds temporarily plateau, the total destructive wind-field expands across a much broader diameter.`;
+      } else if (q.includes("evacuat") || q.includes("route") || q.includes("shelter")) {
+        ansCard.innerHTML = `<strong>IMD Evacuation Guidelines:</strong><br/>All communities within coastal sectors below 4m MSL elevation contour must evacuate 24 hours prior to gale arrival. Move inland along National Highway contraflow corridors to fortified concrete cyclone centers.`;
+      } else {
+        ansCard.innerHTML = `<strong>IMD Meteorological Bulletin for "${q}":</strong><br/>Tropical cyclone intensity is measured on the Dvorak scale using geostationary satellite radiometry. Keep emergency radios tuned to local CAP / VHF frequencies and do not leave concrete storm shelters until official 'All Clear' advisories are issued.`;
+      }
+    }
+  </script>
+</body>
+</html>

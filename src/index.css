@@ -1,0 +1,391 @@
+@import "tailwindcss";
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes cycloneSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes cycloneSpinReverse {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes pulseWave {
+  0% {
+    transform: scale(0.65);
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(1.45);
+    opacity: 0;
+  }
+}
+
+@keyframes pulseWaveOuter {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 0.35;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+@keyframes radarPulseRing {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 0.35;
+  }
+}
+
+.animate-dash {
+  animation: dash 1.5s linear infinite;
+}
+
+.animate-spin-slow {
+  animation: spinSlow 8s linear infinite;
+}
+
+.animate-cyclone-spin {
+  animation: cycloneSpin 3.5s linear infinite;
+}
+
+.animate-cyclone-spin-reverse {
+  animation: cycloneSpinReverse 7s linear infinite;
+}
+
+.animate-pulse-wave {
+  animation: pulseWave 2.2s cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
+}
+
+.animate-pulse-wave-outer {
+  animation: pulseWaveOuter 3.2s cubic-bezier(0.2, 0.6, 0.4, 1) infinite 0.7s;
+}
+
+.animate-radar-ring {
+  animation: radarPulseRing 2.8s ease-in-out infinite;
+}
+
+/* Hide scrollbar for horizontal swipe tabs on mobile */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Custom scrollbars for high-tech telemetry consoles */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #030712;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #0284c7;
+}
+
+/* Hide Google Maps Zoom (+ and -) symbols completely */
+.gm-bundled-control,
+.gmnoprint [aria-label*="Zoom"],
+.gmnoprint [title*="Zoom"],
+.gm-control-active[aria-label*="Zoom in"],
+.gm-control-active[aria-label*="Zoom out"],
+[title="Zoom in"],
+[title="Zoom out"],
+[aria-label="Zoom in"],
+[aria-label="Zoom out"],
+button[title*="zoom" i],
+button[aria-label*="zoom" i] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Light Mode Theme System (Crisp, High-Contrast Operations Dashboard) */
+html.light,
+.light {
+  color-scheme: light;
+}
+
+html.light body,
+.light.app-root {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+html.light header {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+html.light footer {
+  background-color: #ffffff !important;
+  border-top-color: #e2e8f0 !important;
+  color: #64748b !important;
+}
+
+html.light h1,
+html.light h2,
+html.light h3,
+html.light h4 {
+  color: #0f172a !important;
+}
+
+/* Card & Surface Backgrounds */
+html.light .bg-slate-950 {
+  background-color: #f8fafc !important;
+}
+
+html.light .bg-slate-900 {
+  background-color: #ffffff !important;
+}
+
+html.light .bg-slate-900\/90,
+html.light .bg-slate-900\/95 {
+  background-color: rgba(255, 255, 255, 0.98) !important;
+}
+
+html.light .bg-slate-950\/60,
+html.light .bg-slate-950\/70,
+html.light .bg-slate-950\/80,
+html.light .bg-slate-950\/90,
+html.light .bg-slate-950\/95 {
+  background-color: #f8fafc !important;
+}
+
+html.light .bg-slate-800 {
+  background-color: #e2e8f0 !important;
+}
+
+html.light .bg-slate-800\/80,
+html.light .bg-slate-800\/90 {
+  background-color: #e2e8f0 !important;
+}
+
+/* Borders */
+html.light .border-slate-800,
+html.light .border-slate-700,
+html.light .border-slate-800\/60,
+html.light .border-slate-800\/80,
+html.light .border-slate-700\/80 {
+  border-color: #e2e8f0 !important;
+}
+
+/* Typography Hierarchy in Light Mode */
+html.light .text-white {
+  color: #0f172a !important;
+}
+
+html.light .text-slate-100,
+html.light .text-slate-200 {
+  color: #1e293b !important;
+}
+
+html.light .text-slate-300 {
+  color: #334155 !important;
+}
+
+html.light .text-slate-400 {
+  color: #64748b !important;
+}
+
+html.light .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+/* Vibrant Light Mode Accent Text Colors */
+html.light .text-cyan-200,
+html.light .text-cyan-300,
+html.light .text-cyan-400 {
+  color: #0284c7 !important; /* sky-600 */
+}
+
+html.light .text-amber-300,
+html.light .text-amber-400 {
+  color: #b45309 !important; /* amber-700 */
+}
+
+html.light .text-red-300,
+html.light .text-red-400 {
+  color: #dc2626 !important; /* red-600 */
+}
+
+html.light .text-emerald-300,
+html.light .text-emerald-400 {
+  color: #15803d !important; /* emerald-700 */
+}
+
+html.light .text-purple-300,
+html.light .text-purple-400 {
+  color: #7e22ce !important; /* purple-700 */
+}
+
+/* Accent Surface Tints */
+html.light .bg-cyan-950,
+html.light .bg-cyan-950\/20,
+html.light .bg-cyan-950\/30,
+html.light .bg-cyan-950\/50,
+html.light .bg-cyan-950\/80,
+html.light .bg-cyan-500\/10,
+html.light .bg-cyan-500\/20 {
+  background-color: #f0f9ff !important; /* sky-50 */
+  border-color: #bae6fd !important; /* sky-200 */
+  color: #0369a1 !important;
+}
+
+html.light .bg-red-950,
+html.light .bg-red-950\/20,
+html.light .bg-red-950\/30,
+html.light .bg-red-950\/40,
+html.light .bg-red-950\/50,
+html.light .bg-red-950\/70,
+html.light .bg-red-950\/80,
+html.light .bg-red-500\/10,
+html.light .bg-red-500\/20 {
+  background-color: #fef2f2 !important; /* red-50 */
+  border-color: #fecaca !important; /* red-200 */
+  color: #b91c1c !important;
+}
+
+html.light .bg-amber-950,
+html.light .bg-amber-950\/20,
+html.light .bg-amber-950\/30,
+html.light .bg-amber-950\/50,
+html.light .bg-amber-950\/80,
+html.light .bg-amber-500\/10,
+html.light .bg-amber-500\/20 {
+  background-color: #fffbeb !important; /* amber-50 */
+  border-color: #fde68a !important; /* amber-200 */
+  color: #b45309 !important;
+}
+
+html.light .bg-emerald-950,
+html.light .bg-emerald-950\/20,
+html.light .bg-emerald-950\/30,
+html.light .bg-emerald-950\/50,
+html.light .bg-emerald-950\/80,
+html.light .bg-emerald-500\/10,
+html.light .bg-emerald-500\/20 {
+  background-color: #f0fdf4 !important; /* emerald-50 */
+  border-color: #bbf7d0 !important; /* emerald-200 */
+  color: #15803d !important;
+}
+
+/* Hover States */
+html.light .hover\:bg-slate-800:hover {
+  background-color: #e2e8f0 !important;
+}
+
+html.light .hover\:bg-slate-900:hover {
+  background-color: #f1f5f9 !important;
+}
+
+/* Form Controls & Inputs in Light Mode */
+html.light input,
+html.light select,
+html.light textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+html.light input:focus,
+html.light select:focus,
+html.light textarea:focus {
+  border-color: #0284c7 !important;
+  outline-color: #0284c7 !important;
+}
+
+/* Tables in Light Mode */
+html.light table {
+  background-color: #ffffff !important;
+}
+
+html.light th {
+  background-color: #f8fafc !important;
+  color: #475569 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light td {
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* Buttons with Solid High-Contrast Colors */
+html.light .bg-red-600,
+html.light .bg-red-700,
+html.light .bg-red-500,
+html.light .bg-emerald-600,
+html.light .bg-blue-600,
+html.light button.bg-red-600,
+html.light button.bg-red-700,
+html.light button.bg-red-500,
+html.light button.bg-emerald-600,
+html.light button.bg-blue-600,
+html.light a.bg-blue-600 {
+  color: #ffffff !important;
+}
+
+html.light button.bg-cyan-500,
+html.light button.bg-amber-400,
+html.light .bg-cyan-400 {
+  color: #020617 !important;
+}
+
+/* Shadows */
+html.light .shadow-2xl,
+html.light .shadow-xl {
+  box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04) !important;
+}
+
+
